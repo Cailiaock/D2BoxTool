@@ -1,6 +1,9 @@
 #include "stdafx.h"
 #include "Config.h"
 
+
+char CONFIG_BAKPATH[1024] = "c:\\大箱子备份";
+
 char * excel_misc;
 long excel_misc_size;
 
@@ -225,6 +228,7 @@ bool LoadConfig()
 	{
 		if (*pLineSplit != '#')
 		{
+			bool bBackPath = false;
 			Config * nowConfig = NULL;
 			if (strstr(pLineSplit, ",") != NULL)
 			{
@@ -250,10 +254,23 @@ bool LoadConfig()
 					col[split_Col_ReturnLen] = '\0';
 
 					if (split_Col_Index == 0)
-						strcpy(nowConfig->type, col);
+					{
+						if (strcmp(col, "bakpath") == 0)
+							bBackPath = true;
+						else
+							strcpy(nowConfig->type, col);
+					}
 					else if (split_Col_Index == 1)
-						nowConfig->quality = atoi(col);
-					else if (split_Col_Index == 2)
+					{
+						if (bBackPath)
+						{
+							strcpy(CONFIG_BAKPATH, col);
+							ConfigsCount--;
+						}
+						else
+							nowConfig->quality = atoi(col);
+					}
+					else if (split_Col_Index == 2 && !bBackPath)
 					{
 						nowConfig->page = atoi(col);
 						nowConfig->page--;

@@ -2,6 +2,8 @@
 
 #include "Public.h"
 
+extern char CONFIG_BAKPATH[1024];
+
 typedef struct Config{
 	char type[30];
 	int quality;

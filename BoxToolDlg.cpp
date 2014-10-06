@@ -98,14 +98,19 @@ BOOL CBoxToolDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO:  在此添加额外的初始化代码
-	GetDlgItem(txtSM)->SetWindowTextW(_T("该程序在暗黑1.13版本下测试通过，其他版本未测试！\r\n使用前，请确认暗黑2已经关闭，否则可能导致存档损坏！\r\n程序已自动在“c:\\大箱子备份”中备份了存档。如果遇到错误，可以到该目录下找到对应文件恢复。\r\n有任何问题可通过邮箱联系作者:lhtcym@gmail.com\r\n\r\n使用方法：\r\n打开save文件夹下的_LOD_SharedStashSave.sss，然后点击“整理”。"));
-	
 	if (!LoadExcel()
 		|| !LoadConfig()
 		|| !LoadItemType())
 	{
 		exit(0);
 	}
+
+	CString sSM = _T("该程序在暗黑1.13版本下测试通过，其他版本未测试！\r\n使用前，请确认暗黑2已经关闭，否则可能导致存档损坏！\r\n程序已自动在“");
+	sSM += CONFIG_BAKPATH;
+	sSM += _T("”中备份了存档。如果遇到错误，可以到该目录下找到对应文件恢复。\r\n有任何问题可通过邮箱联系作者:lhtcym@gmail.com\r\n\r\n使用方法：\r\n打开save文件夹下的_LOD_SharedStashSave.sss，然后点击“整理”。";
+	GetDlgItem(txtSM)->SetWindowTextW(sSM));
+
+
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -197,12 +202,20 @@ void CBoxToolDlg::OnBnClickedbtnzl()
 	int n = sFilePath.GetLength() - sFilePath.ReverseFind('\\') - 1;
 	sFileName = sFilePath.Right(n);
 
-	if (!DirectoryExist(_T("c:\\大箱子备份")))
-		CreateDirectory(_T("c:\\大箱子备份"), NULL);
+	CString sbackpath(CONFIG_BAKPATH);
+	if (!DirectoryExist(sbackpath))
+		CreateDirectory(sbackpath, NULL);
+
+	if (!DirectoryExist(sbackpath))
+	{
+		MessageBox(_T("备份目录不存在：" + sbackpath), _T("提示"), 0);
+		return;
+	}
+
 
 	CString bakpath;
 	CTime nowtime = CTime::GetCurrentTime();
-	bakpath.Format(_T("c:\\大箱子备份\\%d-%d-%d_%d-%d-%d_"), nowtime.GetYear(),
+	bakpath.Format(sbackpath + _T("\\%d-%d-%d_%d-%d-%d_"), nowtime.GetYear(),
 		nowtime.GetMonth(),
 		nowtime.GetDay(),
 		nowtime.GetHour(),
