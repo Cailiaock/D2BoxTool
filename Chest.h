@@ -9,9 +9,8 @@ const char split_item[] = { 0x4A, 0x4D };
 
 typedef struct Chest{
 	int checkPageCount;
-	int headLen;
 	char head[200];
-
+	int headLen;
 	Page *page;
 	int pageCount;
 	int pageLength;

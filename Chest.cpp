@@ -3,85 +3,141 @@
 
 byte table[10][10] = { 0 };
 
+Page* ChestNewPage(Chest* chest)
+{
+	Page* newPage = NULL;
+	ChestSetPageCount(chest, chest->pageCount);
+	if (chest->pageCount < chest->pageLength)
+	{
+		newPage = &chest->page[chest->pageCount];
+		PageSetItemCount(newPage, 100);
+	}
+	chest->pageCount++;
+	return newPage;
+}
+
+
+void PageNewItem(Page *page, const void * _Item, size_t _Size)
+{
+	PageSetItemCount(page, page->itemCount);
+
+	Item *item = &(page->item[page->itemCount]);
+	memset(item, 0, sizeof(Item));
+	memcpy(item, _Item, _Size);
+
+	char * itemcode = GetItemCode(*item);
+	item->len = _Size;
+	item->invwidth = GetExcelItemInvwidth(itemcode);
+	item->invheight = GetExcelItemInvheight(itemcode);
+	free(itemcode);
+	itemcode = NULL;
+
+	if (item->location != 0)
+		page->insertItemCount++;
+	page->itemCount++;
+}
+
 Chest ChestRead(const char * _BagFileName)
 {
-	Chest chest;
-	memset(&chest, 0, sizeof(Chest));
-	//chest.pageLength = 100;
-	ChestSetPageCount(&chest, 100);
-
 	//read file
-	long lSize;
+	long lSize = 0;
 	char * buffer = ReadAllFile(_BagFileName, "rb", &lSize);
 
-	int split_Page_Begin = 0;
-	int split_Page_ReturnLen = 0;
-	int split_Page_Index = 0;
-	char * pPageSplit = strsplit(buffer, split_page, lSize, sizeof(split_page), &split_Page_Begin, &split_Page_ReturnLen);
-	while (pPageSplit != NULL)
+	Chest chest;
+	memset(&chest, 0, sizeof(Chest));
+	ChestSetPageCount(&chest, 100);
+
+	int iBufferIndex = 0;
+	int iBeginIndex = 0;
+	Page *page = NULL;
+	Item *item = NULL;
+	int itemindex = 0;
+	while (iBufferIndex < lSize)
 	{
-		if (split_Page_Index == 0)
+		if (buffer[iBufferIndex] == split_page[0])	//page:0x53, 0x54, 0x00, 0x4A, 0x4D
 		{
-			//head
-			chest.headLen = split_Page_ReturnLen;
-			memcpy(chest.head, pPageSplit, chest.headLen);
-			memcpy(&chest.checkPageCount, chest.head + chest.headLen - 4, 4);
+			//page
+			if (iBufferIndex + 5 <= lSize
+				&& CharsCompare(buffer + iBufferIndex + 1, split_page + 1, sizeof(split_page)-1))
+			{
+				if (iBeginIndex == 0)
+				{
+					//chest head
+					chest.headLen = iBufferIndex - iBeginIndex;
+					memcpy(chest.head, buffer + iBeginIndex, chest.headLen);
+					memcpy(&chest.checkPageCount, chest.head + chest.headLen - 4, 4);
+
+					if (chest.checkPageCount > 0)
+					{
+						//first page
+						page = ChestNewPage(&chest);
+						itemindex = 0;
+					}
+				}
+				else
+				{
+					if (page->fileItemCount > 0)
+						PageNewItem(page, buffer + iBeginIndex, iBufferIndex - iBeginIndex);//last item
+
+					//new page
+					page = ChestNewPage(&chest);
+					itemindex = 0;
+				}
+				iBufferIndex += sizeof(split_page);
+				iBeginIndex = iBufferIndex;
+				continue;
+			}
+		}
+		else if (buffer[iBufferIndex] == split_item[0])	 //item:0x4A, 0x4D
+		{
+			if (iBufferIndex + 2 <= lSize
+				&& CharsCompare(buffer + iBufferIndex + 1, split_item + 1, sizeof(split_item)-1))
+			{
+				if (itemindex == 0)
+				{
+					short iFileItemCount = 0;
+					memcpy(&iFileItemCount, buffer + iBeginIndex, iBufferIndex - iBeginIndex);
+					page->fileItemCount = iFileItemCount;
+				}
+				else
+				{
+					//check item 
+					Item test;
+					memcpy(&test, buffer + sizeof(split_item)+iBufferIndex, 1);
+					if (test.chk1 != 0 || test.chk2 != 0)
+					{
+						iBufferIndex += sizeof(split_item);
+						continue;
+					}
+
+					//item realloc
+					PageNewItem(page, buffer + iBeginIndex, iBufferIndex - iBeginIndex);
+				}
+				iBufferIndex += sizeof(split_item);
+				iBeginIndex = iBufferIndex;
+				itemindex++;
+				continue;
+			}
+		}
+		iBufferIndex++;
+	}
+
+	if (iBufferIndex == lSize)
+	{
+		if (itemindex == 0)
+		{
+			//page head
+			short iFileItemCount = 0;
+			memcpy(&iFileItemCount, buffer + iBeginIndex, iBufferIndex - iBeginIndex);
+			page->fileItemCount = iFileItemCount;
 		}
 		else
 		{
-			//page realloc
-			ChestSetPageCount(&chest, chest.pageCount);
-
-			if (chest.pageCount < chest.pageLength)
-			{
-				Page *page = &chest.page[chest.pageCount];
-				//item
-				//page->itemLength = 100;
-				PageSetItemCount(page, 100);
-
-				int split_Item_Begin = 0;
-				int split_Item_ReturnLen = 0;
-				int split_Item_Index = 0;
-				char * pItemSplit = strsplit(pPageSplit, split_item, split_Page_ReturnLen, sizeof(split_item), &split_Item_Begin, &split_Item_ReturnLen);
-				while (pItemSplit != NULL)
-				{
-					if (split_Item_Index > 0)
-					{
-						//item realloc
-						PageSetItemCount(page, page->itemCount);
-
-						Item *item = &(page->item[page->itemCount]);
-						memset(item, 0, sizeof(Item));
-						memcpy(item, pItemSplit, split_Item_ReturnLen);
-
-						char * itemcode = GetItemCode(*item);
-						item->len = split_Item_ReturnLen;
-						item->invwidth = GetExcelItemInvwidth(itemcode);
-						item->invheight = GetExcelItemInvheight(itemcode);
-						free(itemcode);
-						itemcode = NULL;
-
-						if (item->location != 0)
-							page->insertItemCount++;
-						page->itemCount++;
-					}
-					//next split
-					split_Item_Index++;
-					free(pItemSplit);
-					pItemSplit = strsplit(pPageSplit, split_item, split_Page_ReturnLen, sizeof(split_item), &split_Item_Begin, &split_Item_ReturnLen);
-				}
-				free(pItemSplit);
-				pItemSplit = NULL;
-			}
-			chest.pageCount++;
+			//item realloc
+			PageNewItem(page, buffer + iBeginIndex, iBufferIndex - iBeginIndex);
 		}
-		//next split
-		split_Page_Index++;
-		free(pPageSplit);
-		pPageSplit = strsplit(buffer, split_page, lSize, sizeof(split_page), &split_Page_Begin, &split_Page_ReturnLen);
 	}
-	free(pPageSplit);
-	pPageSplit = NULL;
+
 	free(buffer);
 	buffer = NULL;
 	return chest;

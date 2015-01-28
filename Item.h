@@ -12,7 +12,9 @@ typedef struct Item
 {
 	//byte data1[2];  -- 4a 4d 
 	byte questitem : 1;	//16 1
-byte: 7;				//unknown
+	byte chk1 : 3;				//unknown 000
+	byte identified : 1;//Identified
+	byte chk2 : 3;				//unknown 000
 
 	byte data2[4];
 
