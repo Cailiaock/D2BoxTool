@@ -18,15 +18,15 @@ int BagClean(const char * _BagFileName)
 
 	if (FileCompare(_BagFileName, "~BoxToolTmp"))
 	{
-		/*ChestSort(&chest);
-		ChestWrite(chest, _BagFileName);*/
+		ChestSort(&chest);
+		ChestWrite(chest, _BagFileName);
 	}
 	else
 	{
 		result = 1;
 		MessageBox(0, _T("文件解析失败，无法整理！"), _T("提示"), 0);
 	}
-	//remove("~BoxToolTmp");
+	remove("~BoxToolTmp");
 
 	//free
 	FreeChest(&chest);

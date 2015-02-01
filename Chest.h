@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Config.h"
 #include "Page.h"
 #include "Public.h"
 
@@ -29,5 +28,3 @@ int ChestPutItem(Chest *chest, const Item item, int pageindex);
 int ChestPutInsertItem(Chest *chest, const Item item, int pageindex);
 
 void ChestSetPageCount(Chest *chest, int pageindex);
-
-void PageSetItemCount(Page *page, int itemindex);
