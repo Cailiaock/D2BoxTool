@@ -212,7 +212,6 @@ void CBoxToolDlg::OnBnClickedbtnzl()
 		return;
 	}
 
-
 	CString bakpath;
 	CTime nowtime = CTime::GetCurrentTime();
 	bakpath.Format(sbackpath + _T("\\%d-%d-%d_%d-%d-%d_"), nowtime.GetYear(),
@@ -242,6 +241,33 @@ void CBoxToolDlg::OnBnClickedbtnzl()
 	result = BagClean(path);
 	if (result == 0)
 		MessageBox(_T("整理成功！"), _T("提示"), 0);
+
+
+	//long lsize = 0;
+	//char *buf = ReadAllFile("excel\\SetItems.txt", "r", &lsize);
+	//if (buf == NULL)
+	//{
+	//	return;
+	//}
+
+	//int iCol = 0;
+	//int iRow = 0;
+	//char cell[256];
+	//ResetTable();
+	//int iOldRow = 0;
+	//while (GetTableCell(buf, lsize, &iRow, &iCol, cell))
+	//{
+	//	if (iOldRow != iRow)
+	//	{
+	//		//fprintf(fp, "\n");
+	//		iOldRow = iRow;
+	//	}
+	//	if (iCol != 0)
+	//	{
+	//		//fprintf(fp, "\t");
+	//	}
+	//	//fprintf(fp, "%s", cell);
+	//}
 }
 
 BOOL CBoxToolDlg::DirectoryExist(CString Path)

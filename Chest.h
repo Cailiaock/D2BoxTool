@@ -13,6 +13,7 @@ typedef struct Chest{
 	Page *page;
 	int pageCount;
 	int pageLength;
+	int itemCount;
 }Chest;
 
 Chest ChestRead(const char * _BagFileName);
@@ -28,3 +29,5 @@ int ChestPutItem(Chest *chest, const Item item, int pageindex);
 int ChestPutInsertItem(Chest *chest, const Item item, int pageindex);
 
 void ChestSetPageCount(Chest *chest, int pageindex);
+
+Chest ChestMerge(const char * _ChestFile1, const char * _ChestFile2);

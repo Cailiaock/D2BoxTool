@@ -35,6 +35,8 @@ void PageNewItem(Page *page, const void * _Item, size_t _Size)
 	free(itemcode);
 	itemcode = NULL;
 
+	GetItemCol(*item);
+
 	if (item->location != 0)
 		page->insertItemCount++;
 	page->itemCount++;

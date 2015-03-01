@@ -53,80 +53,60 @@ bool LoadExcel()
 	}
 
 	char * buf[3] = { excel_misc, excel_weapons, excel_armor };
-
 	long len[3] = { excel_misc_size, excel_weapons_size, excel_armor_size };
-
 	for (int i = 0; i < 3; i++)
 	{
 		int iName = -1;
 		int iCode = -1;
 		int iInvwidth = -1;
 		int iInvheight = -1;
-
 		char * buffer = buf[i];
 		long lSize = len[i];
+		int iCol = 0;
+		int iRow = 0;
+		int iOldRow = 0;
+		char cell[256];
+		ExcelItem * nowExcelItem = NULL;
 
-		int split_Line_Begin = 0;
-		int split_Line_ReturnLen = 0;
-		int split_Line_Index = 0;
-		char * pLineSplit = strsplit(buffer, "\n", lSize, 1, &split_Line_Begin, &split_Line_ReturnLen);
-		while (pLineSplit != NULL)
+		ResetTable();
+		while (GetTableCell(buffer, lSize, &iRow, &iCol, cell))
 		{
-			ExcelItem * nowExcelItem = NULL;
-			if (split_Line_Index != 0)
+			if (iRow == 0)
 			{
-				if (ExcelItemsCount == ExcelItemsLength)
-				{
-					ExcelItemsLength = ExcelItemsLength << 1;
-					ExcelItems = (ExcelItem *)realloc(ExcelItems, sizeof(ExcelItem)* ExcelItemsLength);
-				}
-				nowExcelItem = &ExcelItems[ExcelItemsCount];
-				ExcelItemsCount++;
+				if (iName == -1 && strcmp(cell, "name") == 0)
+					iName = iCol;
+				else if (iCode == -1 && strcmp(cell, "code") == 0)
+					iCode = iCol;
+				else if (iInvwidth == -1 && strcmp(cell, "invwidth") == 0)
+					iInvwidth = iCol;
+				else if (iInvheight == -1 && strcmp(cell, "invheight") == 0)
+					iInvheight = iCol;
 			}
-
-			int split_Col_Begin = 0;
-			int split_Col_ReturnLen = 0;
-			int split_Col_Index = 0;
-			char * pColSplit = strsplit(pLineSplit, "\t", split_Line_ReturnLen, 1, &split_Col_Begin, &split_Col_ReturnLen);
-			while (pColSplit != NULL)
+			else
 			{
-				if (split_Line_Index == 0)
+
+				if (iOldRow != iRow)
 				{
-					//head
-					if (strncmp(pColSplit, "name", split_Col_ReturnLen) == 0) iName = split_Col_Index;
-					else if (strncmp(pColSplit, "code", split_Col_ReturnLen) == 0) iCode = split_Col_Index;
-					else if (strncmp(pColSplit, "invwidth", split_Col_ReturnLen) == 0) iInvwidth = split_Col_Index;
-					else if (strncmp(pColSplit, "invheight", split_Col_ReturnLen) == 0) iInvheight = split_Col_Index;
-				}
-				else
-				{
-					if (split_Col_Index == iName)
-						strncpy(nowExcelItem->name, pColSplit, split_Col_ReturnLen);
-					else if (split_Col_Index == iCode)
-						strncpy(nowExcelItem->code, pColSplit, split_Col_ReturnLen);
-					else if (split_Col_Index == iInvwidth)
-						nowExcelItem->invwidth = atoi(pColSplit);
-					else if (split_Col_Index == iInvheight)
-						nowExcelItem->invheight = atoi(pColSplit);
+					iOldRow = iRow;
+					if (ExcelItemsCount == ExcelItemsLength)
+					{
+						ExcelItemsLength = ExcelItemsLength << 1;
+						ExcelItems = (ExcelItem *)realloc(ExcelItems, sizeof(ExcelItem)* ExcelItemsLength);
+					}
+					nowExcelItem = &ExcelItems[ExcelItemsCount];
+					ExcelItemsCount++;
 				}
 
-				//next split
-				split_Col_Index++;
-				free(pColSplit);
-				pColSplit = NULL;
-				pColSplit = strsplit(pLineSplit, "\t", split_Line_ReturnLen, 1, &split_Col_Begin, &split_Col_ReturnLen);
+				if (iCol == iName)
+					strcpy(nowExcelItem->name, cell);
+				else if (iCol == iCode)
+					strcpy(nowExcelItem->code, cell);
+				else if (iCol == iInvwidth)
+					nowExcelItem->invwidth = atoi(cell);
+				else if (iCol == iInvheight)
+					nowExcelItem->invheight = atoi(cell);
 			}
-			free(pColSplit);
-			pColSplit = NULL;
-
-			//next split
-			split_Line_Index++;
-			free(pLineSplit);
-			pLineSplit = NULL;
-			pLineSplit = strsplit(buffer, "\n", lSize, 1, &split_Line_Begin, &split_Line_ReturnLen);
 		}
-		free(pLineSplit);
-		pLineSplit = NULL;
 	}
 	return true;
 }

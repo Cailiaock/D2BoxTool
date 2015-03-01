@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Public.h"
+#include "Table.h"
 
 extern char CONFIG_BAKPATH[1024];
 

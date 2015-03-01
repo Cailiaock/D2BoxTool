@@ -26,11 +26,12 @@ Chest ChestRead(const char * _BagFileName)
 	memset(&chest, 0, sizeof(Chest));
 	ChestSetPageCount(&chest, 100);
 
-	int iBufferIndex = 0;
-	int iBeginIndex = 0;
+	long iBufferIndex = 0;
+	long iBeginIndex = 0;
 	Page *page = NULL;
 	Item *item = NULL;
 	int itemindex = 0;
+	chest.itemCount = 0;
 	while (iBufferIndex < lSize)
 	{
 		if (buffer[iBufferIndex] == split_page[0])	//page:0x53, 0x54, 0x00, 0x4A, 0x4D
@@ -56,7 +57,10 @@ Chest ChestRead(const char * _BagFileName)
 				else
 				{
 					if (page->fileItemCount > 0)
+					{
 						PageNewItem(page, buffer + iBeginIndex, iBufferIndex - iBeginIndex);//last item
+						chest.itemCount++;
+					}
 
 					//new page
 					page = ChestNewPage(&chest);
@@ -74,9 +78,7 @@ Chest ChestRead(const char * _BagFileName)
 			{
 				if (itemindex == 0)
 				{
-					short iFileItemCount = 0;
-					memcpy(&iFileItemCount, buffer + iBeginIndex, iBufferIndex - iBeginIndex);
-					page->fileItemCount = iFileItemCount;
+					memcpy(&page->fileItemCount, buffer + iBeginIndex, iBufferIndex - iBeginIndex);
 				}
 				else
 				{
@@ -91,6 +93,7 @@ Chest ChestRead(const char * _BagFileName)
 
 					//item realloc
 					PageNewItem(page, buffer + iBeginIndex, iBufferIndex - iBeginIndex);
+					chest.itemCount++;
 				}
 				iBufferIndex += sizeof(split_item);
 				iBeginIndex = iBufferIndex;
@@ -101,19 +104,18 @@ Chest ChestRead(const char * _BagFileName)
 		iBufferIndex++;
 	}
 
-	if (iBufferIndex == lSize)
+	if (iBufferIndex == lSize && iBeginIndex != 0)
 	{
 		if (itemindex == 0)
 		{
 			//page head
-			short iFileItemCount = 0;
-			memcpy(&iFileItemCount, buffer + iBeginIndex, iBufferIndex - iBeginIndex);
-			page->fileItemCount = iFileItemCount;
+			memcpy(&page->fileItemCount, buffer + iBeginIndex, iBufferIndex - iBeginIndex);
 		}
 		else
 		{
 			//item realloc
 			PageNewItem(page, buffer + iBeginIndex, iBufferIndex - iBeginIndex);
+			chest.itemCount++;
 		}
 	}
 
@@ -155,7 +157,7 @@ void ChestWrite(const Chest chest, const char * _BagFileName)
 
 void FreeChest(Chest *chest)
 {
-	for (int i = 0; i < chest->pageLength; i++)
+	for (int i = 0; i < chest->pageCount; i++)
 	{
 		if (chest->page[i].item != NULL)
 		{
@@ -360,4 +362,30 @@ void ChestSetPageCount(Chest *chest, int pageindex)
 	}
 }
 
+Chest ChestMerge(const char * _ChestFile1, const char * _ChestFile2)
+{
+	Chest chest1 = ChestRead(_ChestFile1);
+	long lSize1 = 0;
+	char * buffer1 = ReadAllFile(_ChestFile1, "rb", &lSize1);
+
+	Chest chest2 = ChestRead(_ChestFile2);
+	long lSize2 = 0;
+	char * buffer2 = ReadAllFile(_ChestFile2, "rb", &lSize2);
+
+	remove("~TmpMerge");
+	FILE *fw;
+	fw = fopen("~TmpMerge", "wb");
+	fwrite(buffer1, sizeof(char), lSize1, fw);
+	fwrite(buffer2 + chest2.headLen, sizeof(char), lSize2 - chest2.headLen, fw);
+	fclose(fw);
+
+	Chest newChest = ChestRead("~TmpMerge");
+	newChest.pageCount = chest1.pageCount + chest2.pageCount;
+	ChestSetPageCount(&newChest, newChest.pageCount);
+
+	remove("~TmpMerge");
+	FreeChest(&chest1);
+	FreeChest(&chest2);
+	return newChest;
+}
 
